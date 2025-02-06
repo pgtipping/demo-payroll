@@ -1,49 +1,97 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { UserPlus, Upload, Download, CheckCircle, XCircle, Plus } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useFinancial } from "@/contexts/FinancialContext"
-import { useState } from "react"
-import ErrorBoundary from "@/components/ErrorBoundary"
-import { Switch } from "@/components/ui/switch"
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  UserPlus,
+  Upload,
+  Download,
+  CheckCircle,
+  XCircle,
+  Plus,
+  Users,
+  DollarSign,
+  Settings,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useFinancial } from "@/contexts/FinancialContext";
+import { useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { Switch } from "@/components/ui/switch";
+import { useRouter } from "next/navigation";
 
 export default function AdminPortalPage() {
   return (
     <ErrorBoundary>
       <AdminPortalContent />
     </ErrorBoundary>
-  )
+  );
 }
 
 function AdminPortalContent() {
-  const { country, currency, setCountry, setCurrency } = useFinancial()
-  const [localCountry, setLocalCountry] = useState(country)
-  const [localCurrency, setLocalCurrency] = useState(currency)
+  const { country, currency, setCountry, setCurrency } = useFinancial();
+  const [localCountry, setLocalCountry] = useState(country);
+  const [localCurrency, setLocalCurrency] = useState(currency);
+  const router = useRouter();
 
   const handleSaveFinancialSettings = () => {
-    setCountry(localCountry)
-    setCurrency(localCurrency)
-    alert("Financial settings saved")
-  }
+    setCountry(localCountry);
+    setCurrency(localCurrency);
+    alert("Financial settings saved");
+  };
 
   const [featureToggles, setFeatureToggles] = useState({
-    payslips: true,
-    financialTools: true,
-    dashboard: true,
-    onDemandPay: true,
-    wellnessProgram: true,
-  })
+    basicAuth: true,
+    employeeManagement: true,
+    payrollProcessing: true,
+    employeeSelfService: true,
+    payslipView: true,
+    profileManagement: true,
+  });
 
   const handleFeatureToggle = (feature: keyof typeof featureToggles) => {
-    setFeatureToggles((prev) => ({ ...prev, [feature]: !prev[feature] }))
-  }
+    setFeatureToggles((prev) => ({ ...prev, [feature]: !prev[feature] }));
+  };
+
+  const adminFeatures = [
+    {
+      title: "Employee Management",
+      description: "Manage employee information and roles",
+      href: "/dashboard/employees",
+      icon: Users,
+    },
+    {
+      title: "Payroll Processing",
+      description: "Process monthly payroll and generate payslips",
+      href: "/dashboard/payroll",
+      icon: DollarSign,
+    },
+    {
+      title: "Settings",
+      description: "Configure system settings and preferences",
+      href: "/settings",
+      icon: Settings,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -66,9 +114,36 @@ function AdminPortalContent() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
+        {adminFeatures.map((feature) => {
+          const Icon = feature.icon;
+          return (
+            <Card
+              key={feature.title}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => router.push(feature.href)}
+            >
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Icon className="h-5 w-5" />
+                  <CardTitle>{feature.title}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {feature.description}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Employees
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">150</div>
@@ -76,7 +151,9 @@ function AdminPortalContent() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Approvals
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">5</div>
@@ -84,7 +161,9 @@ function AdminPortalContent() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Payroll</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Monthly Payroll
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currency}675,000</div>
@@ -156,13 +235,22 @@ function AdminPortalContent() {
           <TabsTrigger value="tax-tables" className="whitespace-normal min-w-0">
             Tax Tables
           </TabsTrigger>
-          <TabsTrigger value="employee-id" className="whitespace-normal min-w-0">
+          <TabsTrigger
+            value="employee-id"
+            className="whitespace-normal min-w-0"
+          >
             Employee ID Rules
           </TabsTrigger>
-          <TabsTrigger value="financial-settings" className="whitespace-normal min-w-0">
+          <TabsTrigger
+            value="financial-settings"
+            className="whitespace-normal min-w-0"
+          >
             Financial Settings
           </TabsTrigger>
-          <TabsTrigger value="feature-toggles" className="whitespace-normal min-w-0">
+          <TabsTrigger
+            value="feature-toggles"
+            className="whitespace-normal min-w-0"
+          >
             Feature Toggles
           </TabsTrigger>
         </TabsList>
@@ -184,9 +272,21 @@ function AdminPortalContent() {
                 </TableHeader>
                 <TableBody>
                   {[
-                    { name: "John Doe", type: "Address Update", status: "pending" },
-                    { name: "Jane Smith", type: "Phone Update", status: "pending" },
-                    { name: "Mike Johnson", type: "Bank Details", status: "pending" },
+                    {
+                      name: "John Doe",
+                      type: "Address Update",
+                      status: "pending",
+                    },
+                    {
+                      name: "Jane Smith",
+                      type: "Phone Update",
+                      status: "pending",
+                    },
+                    {
+                      name: "Mike Johnson",
+                      type: "Bank Details",
+                      status: "pending",
+                    },
                   ].map((item) => (
                     <TableRow key={item.name}>
                       <TableCell>{item.name}</TableCell>
@@ -196,10 +296,18 @@ function AdminPortalContent() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" className="text-green-600">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-green-600"
+                          >
                             <CheckCircle className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="text-secondary">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-secondary"
+                          >
                             <XCircle className="h-4 w-4" />
                           </Button>
                         </div>
@@ -220,7 +328,9 @@ function AdminPortalContent() {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Current Tax Brackets</h3>
+                  <h3 className="text-lg font-semibold">
+                    Current Tax Brackets
+                  </h3>
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Tax Bracket
@@ -250,7 +360,11 @@ function AdminPortalContent() {
                           {currency}
                           {item.min.toLocaleString()}
                         </TableCell>
-                        <TableCell>{item.max ? `${currency}${item.max.toLocaleString()}` : "No limit"}</TableCell>
+                        <TableCell>
+                          {item.max
+                            ? `${currency}${item.max.toLocaleString()}`
+                            : "No limit"}
+                        </TableCell>
                         <TableCell>{item.rate}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="sm">
@@ -288,7 +402,11 @@ function AdminPortalContent() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="serialDigits">Serial Number Digits</Label>
-                    <Input id="serialDigits" type="number" placeholder="e.g., 4" />
+                    <Input
+                      id="serialDigits"
+                      type="number"
+                      placeholder="e.g., 4"
+                    />
                   </div>
                 </div>
                 <div className="pt-4">
@@ -308,7 +426,10 @@ function AdminPortalContent() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="country">Country</Label>
-                  <Select onValueChange={setLocalCountry} defaultValue={localCountry}>
+                  <Select
+                    onValueChange={setLocalCountry}
+                    defaultValue={localCountry}
+                  >
                     <SelectTrigger id="country">
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
@@ -322,7 +443,10 @@ function AdminPortalContent() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
-                  <Select onValueChange={setLocalCurrency} defaultValue={localCurrency}>
+                  <Select
+                    onValueChange={setLocalCurrency}
+                    defaultValue={localCurrency}
+                  >
                     <SelectTrigger id="currency">
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
@@ -334,7 +458,9 @@ function AdminPortalContent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleSaveFinancialSettings}>Save Financial Settings</Button>
+                <Button onClick={handleSaveFinancialSettings}>
+                  Save Financial Settings
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -346,18 +472,30 @@ function AdminPortalContent() {
               <CardTitle>Feature Toggles</CardTitle>
               <CardContent>
                 <div className="space-y-4">
-                  {Object.entries(featureToggles).map(([feature, isEnabled]) => (
-                    <div key={feature} className="flex items-center justify-between">
-                      <Label htmlFor={feature} className="text-sm font-medium">
-                        {feature.charAt(0).toUpperCase() + feature.slice(1)}
-                      </Label>
-                      <Switch
-                        id={feature}
-                        checked={isEnabled}
-                        onCheckedChange={() => handleFeatureToggle(feature as keyof typeof featureToggles)}
-                      />
-                    </div>
-                  ))}
+                  {Object.entries(featureToggles).map(
+                    ([feature, isEnabled]) => (
+                      <div
+                        key={feature}
+                        className="flex items-center justify-between"
+                      >
+                        <Label
+                          htmlFor={feature}
+                          className="text-sm font-medium"
+                        >
+                          {feature.charAt(0).toUpperCase() + feature.slice(1)}
+                        </Label>
+                        <Switch
+                          id={feature}
+                          checked={isEnabled}
+                          onCheckedChange={() =>
+                            handleFeatureToggle(
+                              feature as keyof typeof featureToggles
+                            )
+                          }
+                        />
+                      </div>
+                    )
+                  )}
                 </div>
               </CardContent>
             </CardHeader>
@@ -365,6 +503,5 @@ function AdminPortalContent() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
-

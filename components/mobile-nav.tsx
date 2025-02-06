@@ -1,15 +1,30 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, UserCircle, FileText, Settings, LogOut, Building2, TrendingUp } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { useState } from "react"
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Menu,
+  UserCircle,
+  FileText,
+  Settings,
+  LogOut,
+  Building2,
+  TrendingUp,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
 
 export function MobileNav() {
-  const [open, setOpen] = useState(false)
-  const isAdmin = true // This would come from your auth context
+  const [open, setOpen] = useState(false);
+  const isAdmin = true; // This would come from your auth context
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -25,17 +40,23 @@ export function MobileNav() {
             <SheetHeader>
               <SheetTitle>
                 <Image
-                  
-                  alt="Airwire Logo"
+                  src=""
+                  alt=""
                   width={120}
                   height={40}
                   className="mx-auto"
                 />
               </SheetTitle>
-              <SheetDescription>Navigate through your payroll application</SheetDescription>
+              <SheetDescription>
+                Navigate through your payroll application
+              </SheetDescription>
             </SheetHeader>
             <nav className="flex flex-col gap-4 pt-8">
-              <Link href="/" className="flex items-center gap-2 text-lg font-semibold" onClick={() => setOpen(false)}>
+              <Link
+                href="/"
+                className="flex items-center gap-2 text-lg font-semibold"
+                onClick={() => setOpen(false)}
+              >
                 <UserCircle className="h-5 w-5" />
                 Dashboard
               </Link>
@@ -84,16 +105,10 @@ export function MobileNav() {
           </SheetContent>
         </Sheet>
         <div className="flex flex-1 items-center justify-between">
-          <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/airwire%20logo%202-67Sb9b5yTsIF9drYLvymah2eVAlLQy.png"
-            alt="Airwire Logo"
-            width={100}
-            height={35}
-          />
+          <Image src="" alt="" width={100} height={35} />
           <UserCircle className="h-8 w-8" />
         </div>
       </div>
     </header>
-  )
+  );
 }
-

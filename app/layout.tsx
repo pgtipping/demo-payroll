@@ -3,6 +3,9 @@ import "./globals.css";
 import { MobileNav } from "../components/mobile-nav";
 import { FinancialProvider } from "../contexts/FinancialContext";
 import type React from "react";
+import { ThemeProvider } from "@/components/theme-provider";
+import { FeatureFlagProvider } from "@/lib/providers/feature-flags";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,12 +17,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <FinancialProvider>
-          <div className="min-h-screen bg-background">
-            <MobileNav />
-            <main className="container pb-16 pt-4">{children}</main>
-          </div>
-        </FinancialProvider>
+        <ThemeProvider>
+          <FeatureFlagProvider>
+            <FinancialProvider>
+              <div className="min-h-screen bg-background">
+                <MobileNav />
+                <main className="container pb-16 pt-4">{children}</main>
+              </div>
+              <Toaster />
+            </FinancialProvider>
+          </FeatureFlagProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

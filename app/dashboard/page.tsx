@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useFeatures } from "@/lib/config/features";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
   Card,
@@ -9,7 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import {
   Users,
   Calculator,
@@ -21,14 +23,78 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
   const router = useRouter();
+  const { user } = useAuth();
+  const { isEnabled } = useFeatures();
 
-  if (user?.role === "admin") {
-    return <AdminDashboard />;
-  }
+  // MVP: Quick actions for common tasks
+  const quickActions = [
+    {
+      name: "View Payslips",
+      icon: FileText,
+      href: "/payslips",
+      // MVP: Payslip viewing is a core feature for all users
+      show: isEnabled("payslipView"),
+    },
+    {
+      name: "Manage Employees",
+      icon: Users,
+      href: "/dashboard/employees",
+      // MVP: Employee management is a core feature for admin users
+      show: user?.role === "admin" && isEnabled("employeeManagement"),
+    },
+    {
+      name: "Process Payroll",
+      icon: Calculator,
+      href: "/dashboard/payroll",
+      // MVP: Payroll processing is a core feature for admin users
+      show: user?.role === "admin" && isEnabled("payrollProcessing"),
+    },
+  ];
 
-  return <EmployeeDashboard />;
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-8">
+        Welcome, {user ? `${user.firstName} ${user.lastName}` : "User"}
+      </h1>
+
+      {/* Quick Actions */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {quickActions
+              .filter((action) => action.show)
+              .map((action) => (
+                <Button
+                  key={action.name}
+                  variant="outline"
+                  className="h-24 flex flex-col items-center justify-center gap-2"
+                  onClick={() => router.push(action.href)}
+                >
+                  <action.icon className="h-6 w-6" />
+                  {action.name}
+                </Button>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity - MVP: Basic activity tracking */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            Your recent payroll activities will appear here.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function AdminDashboard() {

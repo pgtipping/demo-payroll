@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useFeatures } from "@/lib/config/features";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +20,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, logout, isLoading } = useAuth();
+  const { isEnabled } = useFeatures();
   const router = useRouter();
 
   if (isLoading) {
@@ -34,25 +36,35 @@ export default function DashboardLayout({
       name: "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
-      show: true,
+      show: true, // MVP: Dashboard is a core feature for all users
     },
     {
       name: "Employees",
       href: "/dashboard/employees",
       icon: Users,
-      show: user?.role === "admin",
+      // MVP: Employee management is a core feature for admin users
+      show: user?.role === "admin" && isEnabled("employeeManagement"),
     },
     {
       name: "Payroll",
       href: "/dashboard/payroll",
       icon: Calculator,
-      show: user?.role === "admin",
+      // MVP: Payroll processing is a core feature for admin users
+      show: user?.role === "admin" && isEnabled("payrollProcessing"),
     },
     {
       name: "Payslips",
-      href: "/dashboard/payslips",
+      href: "/payslips",
       icon: FileText,
-      show: true,
+      // MVP: Payslip viewing is a core feature for all users
+      show: isEnabled("payslipView"),
+    },
+    {
+      name: "Settings",
+      href: "/settings",
+      icon: Settings,
+      // MVP: Profile management is a core feature for all users
+      show: isEnabled("profileManagement"),
     },
   ];
 

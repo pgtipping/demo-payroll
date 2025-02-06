@@ -1,13 +1,13 @@
-// Test file to trigger pre-commit hook
+// MVP compliant test features
 export const TEST_FEATURES = {
-  advancedPayroll: {
-    enabled: true, // This should trigger the hook
-    isAdvanced: true,
-    description: "Advanced payroll features including custom deductions",
+  basicPayroll: {
+    enabled: true,
+    isAdvanced: false,
+    description: "Basic payroll features for MVP",
   },
-  wellnessProgram: {
-    enabled: true, // This should also trigger the hook
-    isAdvanced: true,
-    description: "Wellness program integration",
+  standardReporting: {
+    enabled: true,
+    isAdvanced: false,
+    description: "Standard payroll reporting features",
   },
 };

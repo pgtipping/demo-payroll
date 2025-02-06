@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react";
+import { Download } from "lucide-react";
 import { BatchPayslipPDF } from "./PayslipPDF";
-import { PDFDownloadLink } from "@react-pdf/renderer";
 import { useToast } from "@/components/ui/use-toast";
+import { CustomPDFDownload } from "./PDFComponents";
+import { useFeatures } from "@/lib/config/features";
+import { PayslipData, BatchPayslipDownloadProps } from "@/lib/types/payslip";
 import {
   Dialog,
   DialogContent,
@@ -14,35 +16,20 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 
-interface PayslipData {
-  employeeId: string;
-  employeeName: string;
-  period: string;
-  grossSalary: number;
-  deductions: {
-    tax: number;
-    healthInsurance: number;
-    pension: number;
-    other?: number;
-  };
-  netSalary: number;
-  currency: string;
-  generatedAt: Date;
-}
-
-interface BatchPayslipDownloadProps {
-  payslips: PayslipData[];
-  period: string;
-}
-
 export function BatchPayslipDownload({
   payslips,
   period,
 }: BatchPayslipDownloadProps) {
   const { toast } = useToast();
+  const { isEnabled } = useFeatures();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // MVP: Batch payslip generation is a core feature for efficient payroll management
+  if (!isEnabled("payslipView")) {
+    return null;
+  }
 
   const handleGenerateStart = () => {
     setIsGenerating(true);
@@ -54,9 +41,14 @@ export function BatchPayslipDownload({
     setProgress(percentage);
   };
 
-  const handleError = () => {
+  const handleError = (error: Error) => {
     setError("Failed to generate PDFs. Please try again.");
     setIsGenerating(false);
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: "Failed to generate batch PDF. Please try again.",
+    });
   };
 
   const handleSuccess = () => {
@@ -94,29 +86,13 @@ export function BatchPayslipDownload({
                 ? "Generation complete!"
                 : "Ready to generate payslips"}
             </p>
-            <PDFDownloadLink
+            <CustomPDFDownload
               document={<BatchPayslipPDF payslips={payslips} />}
               fileName={`payslips-${period
                 .toLowerCase()
                 .replace(/\s+/g, "-")}.pdf`}
-            >
-              {({ loading, error }) => {
-                if (error) handleError();
-                if (!loading && progress === 100) handleSuccess();
-                return (
-                  <Button className="w-full" disabled={loading || isGenerating}>
-                    {loading || isGenerating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating PDF...
-                      </>
-                    ) : (
-                      "Download PDF"
-                    )}
-                  </Button>
-                );
-              }}
-            </PDFDownloadLink>
+              onError={handleError}
+            />
           </div>
         )}
       </DialogContent>

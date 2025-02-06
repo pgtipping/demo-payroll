@@ -1,3 +1,7 @@
+"use client";
+
+import { createContext, useContext } from "react";
+
 export type FeatureFlag = {
   enabled: boolean;
   isAdvanced: boolean;
@@ -30,46 +34,20 @@ const MVP_FEATURES = {
     isAdvanced: false,
     description: "Basic employee profile viewing and updates",
   },
-};
-
-// Advanced Features (toggleable)
-const ADVANCED_FEATURES = {
-  oauth: {
-    enabled: false,
-    isAdvanced: true,
-    description: "OAuth-based authentication",
+  payslipView: {
+    enabled: true,
+    isAdvanced: false,
+    description: "View and download payslips",
   },
-  redis: {
-    enabled: false,
-    isAdvanced: true,
-    description: "Redis caching layer",
-  },
-  advancedPayroll: {
-    enabled: false,
-    isAdvanced: true,
-    description: "Advanced payroll features including custom deductions",
-  },
-  wellnessProgram: {
-    enabled: false,
-    isAdvanced: true,
-    description: "Wellness program integration",
-  },
-  onDemandPay: {
-    enabled: false,
-    isAdvanced: true,
-    description: "On-demand pay feature",
-  },
-  financialTools: {
-    enabled: false,
-    isAdvanced: true,
-    description: "Advanced financial tools and analytics",
+  profileManagement: {
+    enabled: true,
+    isAdvanced: false,
+    description: "Basic profile and settings management",
   },
 };
 
-export const FEATURES: FeatureFlags = {
-  ...MVP_FEATURES,
-  ...ADVANCED_FEATURES,
-};
+// Export only MVP features during MVP phase
+export const FEATURES: FeatureFlags = MVP_FEATURES;
 
 // Environment-based configuration
 export const isProduction = process.env.NODE_ENV === "production";
@@ -90,4 +68,14 @@ export const isFeatureEnabled = (
   if (isMVPMode) return false;
 
   return feature.enabled;
+};
+
+export const FeatureFlagContext = createContext<FeatureFlags>(FEATURES);
+
+export const useFeatures = () => {
+  const features = useContext(FeatureFlagContext);
+  return {
+    isEnabled: (feature: keyof FeatureFlags) => features[feature].enabled,
+    features,
+  };
 };

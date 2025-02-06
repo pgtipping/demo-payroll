@@ -101,7 +101,7 @@ interface PayslipData {
   };
   netSalary: number;
   currency: string;
-  generatedAt: Date;
+  generatedAt: string;
 }
 
 // Single payslip component
@@ -190,7 +190,14 @@ export function PayslipPage({ data }: { data: PayslipData }) {
 
       {/* Footer */}
       <Text style={styles.footer}>
-        Generated on {format(data.generatedAt, "PPpp")}
+        Generated on:{" "}
+        {new Date(data.generatedAt).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
       </Text>
     </Page>
   );
@@ -198,6 +205,12 @@ export function PayslipPage({ data }: { data: PayslipData }) {
 
 // Single payslip document
 export function PayslipPDF({ data }: { data: PayslipData }) {
+  const totalDeductions =
+    data.deductions.tax +
+    data.deductions.healthInsurance +
+    data.deductions.pension +
+    (data.deductions.other || 0);
+
   return (
     <Document>
       <PayslipPage data={data} />
