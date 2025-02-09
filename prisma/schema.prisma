@@ -20,6 +20,7 @@ model User {
   lastName              String
   role                  String    @default("employee")
   password              String
+  status                String    @default("active")
   notificationPreferences Json?    @default("{\"email\":true,\"push\":false,\"sms\":false}")
   theme                 String?   @default("system")
   createdAt             DateTime  @default(now())
@@ -28,23 +29,64 @@ model User {
 }
 
 model Employee {
-  id        String    @id @default(cuid())
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id])
-  payslips  Payslip[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id])
+  payslips    Payslip[]
+  salaryInfo  SalaryInfo?
+  deductions  Deduction[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model Payslip {
-  id          String   @id @default(cuid())
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id])
+  id            String      @id @default(cuid())
+  employeeId    String
+  employee      Employee    @relation(fields: [employeeId], references: [id])
+  payrollRunId  String
+  payrollRun    PayrollRun  @relation(fields: [payrollRunId], references: [id])
+  grossAmount   Float
+  netAmount     Float
+  deductions    Float
+  status        String      @default("PENDING") // PENDING, PROCESSED, FAILED
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model PayrollRun {
+  id          String      @id @default(cuid())
   periodStart DateTime
   periodEnd   DateTime
-  grossAmount Float
-  netAmount   Float
-  status      String   @default("PENDING") // PENDING, PROCESSED, FAILED
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      String      @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  payslips    Payslip[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  completedAt DateTime?
+}
+
+model SalaryInfo {
+  id          String    @id @default(cuid())
+  employeeId  String    @unique
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  amount      Float
+  currency    String    @default("USD")
+  effectiveDate DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Deduction {
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  name        String
+  description String?
+  amount      Float
+  type        String    // TAX, INSURANCE, PENSION, OTHER
+  recurring   Boolean   @default(true)
+  active      Boolean   @default(true)
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
