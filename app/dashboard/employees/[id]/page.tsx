@@ -18,6 +18,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { PageLoading } from "@/components/ui/loading";
+import { toast } from "sonner";
 
 interface EmployeeFormData {
   firstName: string;
@@ -247,6 +248,59 @@ export default function EmployeeFormPage({
             </div>
 
             <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  toast.custom((t) => (
+                    <div className="flex flex-col gap-2 rounded-lg border bg-background p-4 shadow-lg">
+                      <div className="text-lg font-semibold">
+                        Delete Employee
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Are you sure you want to delete this employee?
+                      </div>
+                      <div className="flex justify-end gap-2 mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toast.dismiss(t)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await adminApi.deleteEmployee(
+                                params.id
+                              );
+                              if (response.error) {
+                                throw new Error(response.error);
+                              }
+                              toast.success("Employee deleted successfully");
+                              router.push("/dashboard/employees");
+                            } catch (error) {
+                              toast.error("Failed to delete employee", {
+                                description:
+                                  error instanceof Error
+                                    ? error.message
+                                    : undefined,
+                              });
+                            }
+                            toast.dismiss(t);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ));
+                }}
+              >
+                Delete
+              </Button>
               <Button
                 type="button"
                 variant="outline"

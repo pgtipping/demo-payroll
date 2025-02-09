@@ -1,19 +1,39 @@
 {
-  "extends": ["next/core-web-vitals", "eslint:recommended"],
+  "extends": [
+    "next/core-web-vitals",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
   "root": true,
   "rules": {
-    "@next/next/no-html-link-for-pages": "off",
     "@typescript-eslint/no-unused-vars": "warn",
-    "@typescript-eslint/no-explicit-any": "warn"
+    "@typescript-eslint/no-explicit-any": "warn",
+    "react/no-unescaped-entities": "off"
   },
-  "overrides": [
-    {
-      "files": ["*.ts", "*.tsx"],
-      "parserOptions": {
-        "project": "./tsconfig.json"
+  "parserOptions": {
+    "project": ["Frontend/tsconfig.json"],
+    "tsconfigRootDir": "..",
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    },
+    "import/resolver": {
+      "typescript": {
+        "alwaysTryTypes": true,
+        "project": ["Frontend/tsconfig.json"]
       }
     }
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "*.config.js",
+    "*.config.mjs"
   ]
 }

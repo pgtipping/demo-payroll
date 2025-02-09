@@ -15,13 +15,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for auth token
-  const token = request.cookies.get("auth-token");
-  if (!token) {
+  // MVP: Check for session
+  const session = request.cookies.get("session");
+  const isTestSession =
+    process.env.NODE_ENV === "development" && session?.value === "test-session";
+
+  // If no session and not a test session, redirect to login
+  if (!session && !isTestSession) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Check for admin routes
+  // MVP: In development with test session, allow all access
+  if (isTestSession) {
+    return NextResponse.next();
+  }
+
+  // Production checks for admin routes
   if (adminRoutes.some((route) => pathname.startsWith(route))) {
     const userRole = request.cookies.get("user-role")?.value;
     if (userRole !== "admin") {

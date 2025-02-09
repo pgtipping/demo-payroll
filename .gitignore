@@ -2,6 +2,12 @@
 
 # dependencies
 /node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+/test-results
 
 # next.js
 /.next/
@@ -9,6 +15,12 @@
 
 # production
 /build
+/dist
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
@@ -16,12 +28,26 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
-.env*
+# local env files
+.env*.local
+.env.development
+.env.test
+.env.production
+.env
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.tsscripts/check-mvp-compliance.ts
+next-env.d.ts
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# cache
+.eslintcache
+.cache

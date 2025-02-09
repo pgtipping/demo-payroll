@@ -1,26 +1,30 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { TEST_ACCOUNTS } from "../test-accounts";
 
+// MVP: Basic session verification endpoint
 export async function GET(request: NextRequest) {
   try {
-    // Forward the request to the backend with cookies
-    const response = await fetch(`${process.env.BACKEND_URL}/api/auth/me`, {
-      headers: {
-        Cookie: request.headers.get("cookie") || "",
-      },
-    });
+    // MVP: In development, use test session
+    if (process.env.NODE_ENV === "development") {
+      const session = request.cookies.get("session");
 
-    if (!response.ok) {
-      return new NextResponse(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-      });
+      if (session?.value === "test-session") {
+        // For testing, return admin user
+        return NextResponse.json({
+          data: {
+            user: TEST_ACCOUNTS.admin,
+          },
+        });
+      }
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // If no valid session, return unauthorized
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   } catch (error) {
-    return new NextResponse(
-      JSON.stringify({ error: "Internal server error" }),
+    console.error("Session verification error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

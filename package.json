@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\"",
     "check-mvp": "ts-node ../tools/check-mvp-compliance.ts",
     "precommit": "husky install && husky add .husky/pre-commit",
     "test:mvp": "MVP_MODE=true npm test",
@@ -64,20 +64,22 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.19.0",
     "@types/node": "22.13.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.1",
+    "@typescript-eslint/parser": "^7.0.1",
     "autoprefixer": "^10.4.16",
     "chalk": "^5.4.1",
-    "eslint": "^9.19.0",
-    "eslint-plugin-react": "^7.37.4",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.2.16",
+    "eslint-import-resolver-typescript": "^3.7.0",
+    "eslint-plugin-react": "^7.33.2",
     "globals": "^15.14.0",
     "husky": "^8.0.0",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.0",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.0",
-    "typescript-eslint": "^8.23.0"
+    "typescript": "^5.0.0"
   }
 }

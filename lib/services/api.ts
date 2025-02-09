@@ -1,3 +1,4 @@
+// MVP: Core API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 // Types
@@ -14,7 +15,7 @@ export class ApiError extends Error {
   }
 }
 
-// Base fetch function with error handling
+// MVP: Base API fetch function with error handling and cookie-based auth
 async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -50,20 +51,23 @@ async function fetchApi<T>(
   }
 }
 
-// Auth API
+// MVP: Basic authentication API endpoints
 export const authApi = {
+  // MVP: Simple email/password login
   login: (email: string, password: string) =>
     fetchApi("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
+  // MVP: Basic logout functionality
   logout: () => fetchApi("/auth/logout", { method: "POST" }),
 
+  // MVP: User profile retrieval
   getProfile: () => fetchApi("/auth/profile"),
 };
 
-// API Response Types
+// MVP: Core employee data types
 export interface ApiProfileResponse {
   firstName: string;
   lastName: string;
@@ -77,7 +81,7 @@ export interface ApiProfileResponse {
   };
 }
 
-// Employee Types
+// MVP: Essential employee information
 export interface Employee {
   id: string;
   firstName: string;
@@ -90,16 +94,19 @@ export interface Employee {
   createdAt: string;
 }
 
-// Employee API
+// MVP: Employee self-service API endpoints
 export const employeeApi = {
+  // MVP: Basic profile management
   getProfile: () => fetchApi<ApiProfileResponse>("/employee/profile"),
 
+  // MVP: Essential profile updates
   updateProfile: (data: ApiProfileResponse) =>
     fetchApi<ApiProfileResponse>("/employee/profile", {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 
+  // MVP: Basic password management
   changePassword: (currentPassword: string, newPassword: string) =>
     fetchApi<{ message: string }>("/employee/password", {
       method: "PUT",
@@ -107,22 +114,26 @@ export const employeeApi = {
     }),
 };
 
-// Update Payslip API types and implementation
+// MVP: Payslip data types
 export interface PayslipDownloadResponse {
   data: ArrayBuffer;
 }
 
-// Payslip API
+// MVP: Payslip management API
 export const payslipApi = {
+  // MVP: Basic payslip listing
   getPayslips: () => fetchApi("/payslips"),
 
+  // MVP: Individual payslip retrieval
   getPayslip: (id: string) => fetchApi(`/payslips/${id}`),
 
+  // MVP: Basic PDF download
   downloadPayslip: (id: string) =>
     fetchApi<ArrayBuffer>(`/payslips/${id}/download`, {
       headers: { Accept: "application/pdf" },
     }),
 
+  // MVP: Batch download functionality
   downloadBatch: (ids: string[]) =>
     fetchApi<ArrayBuffer>("/payslips/batch", {
       method: "POST",
@@ -131,16 +142,19 @@ export const payslipApi = {
     }),
 };
 
-// Admin API
+// MVP: Admin management API
 export const adminApi = {
+  // MVP: Basic employee listing
   getEmployees: () => fetchApi<Employee[]>("/admin/employees"),
 
+  // MVP: Essential employee creation
   createEmployee: (data: Omit<Employee, "id" | "createdAt">) =>
     fetchApi<Employee>("/admin/employees", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
+  // MVP: Basic employee updates
   updateEmployee: (
     id: string,
     data: Partial<Omit<Employee, "id" | "createdAt">>
@@ -150,11 +164,13 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
+  // MVP: Employee removal functionality
   deleteEmployee: (id: string) =>
     fetchApi<{ message: string }>(`/admin/employees/${id}`, {
       method: "DELETE",
     }),
 
+  // MVP: Basic payroll processing
   processPayroll: (month: string, year: number) =>
     fetchApi<{ message: string }>("/admin/payroll/process", {
       method: "POST",

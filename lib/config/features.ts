@@ -70,12 +70,18 @@ export const isFeatureEnabled = (
   return feature.enabled;
 };
 
-export const FeatureFlagContext = createContext<FeatureFlags>(FEATURES);
+export const FeatureFlagContext = createContext<{
+  features: FeatureFlags;
+  isEnabled: (feature: keyof FeatureFlags) => boolean;
+}>({
+  features: FEATURES,
+  isEnabled: (feature) => FEATURES[feature]?.enabled ?? false,
+});
 
 export const useFeatures = () => {
-  const features = useContext(FeatureFlagContext);
-  return {
-    isEnabled: (feature: keyof FeatureFlags) => features[feature].enabled,
-    features,
-  };
+  const context = useContext(FeatureFlagContext);
+  if (!context) {
+    throw new Error("useFeatures must be used within a FeatureFlagProvider");
+  }
+  return context;
 };

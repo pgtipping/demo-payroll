@@ -4,17 +4,32 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Trash2, UserX, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { adminApi, Employee } from "@/lib/services/api";
 import { showToast } from "@/components/ui/toast";
 import { useFeatures } from "@/lib/config/features";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function EmployeesPage() {
   const router = useRouter();
   const { isEnabled } = useFeatures();
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [selectedEmployeesForAction, setSelectedEmployeesForAction] = useState<
+    Employee[]
+  >([]);
+  const [bulkAction, setBulkAction] = useState<
+    "delete" | "deactivate" | "activate" | null
+  >(null);
 
   useEffect(() => {
     // MVP: Employee management is a core feature for admin users
@@ -59,22 +74,77 @@ export default function EmployeesPage() {
     }
   };
 
+  const handleBulkAction = async () => {
+    if (!bulkAction || !selectedEmployeesForAction.length) return;
+
+    try {
+      let successMessage = "";
+      switch (bulkAction) {
+        case "delete":
+          await Promise.all(
+            selectedEmployeesForAction.map((employee) =>
+              adminApi.deleteEmployee(employee.id)
+            )
+          );
+          successMessage = "Successfully deleted selected employees";
+          break;
+        case "deactivate":
+          await Promise.all(
+            selectedEmployeesForAction.map((employee) =>
+              adminApi.updateEmployee(employee.id, {
+                ...employee,
+                status: "inactive",
+              })
+            )
+          );
+          successMessage = "Successfully deactivated selected employees";
+          break;
+        case "activate":
+          await Promise.all(
+            selectedEmployeesForAction.map((employee) =>
+              adminApi.updateEmployee(employee.id, {
+                ...employee,
+                status: "active",
+              })
+            )
+          );
+          successMessage = "Successfully activated selected employees";
+          break;
+      }
+
+      showToast.success(successMessage);
+      loadEmployees();
+    } catch (err) {
+      showToast.error("Failed to perform bulk action", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setIsConfirmDialogOpen(false);
+      setBulkAction(null);
+      setSelectedEmployeesForAction([]);
+    }
+  };
+
   const columns = [
     {
       key: "firstName",
       title: "First Name",
+      filterable: true,
     },
     {
       key: "lastName",
       title: "Last Name",
+      filterable: true,
     },
     {
       key: "email",
       title: "Email",
+      filterable: true,
     },
     {
       key: "role",
       title: "Role",
+      filterable: true,
       render: (employee: Employee) => (
         <Badge variant={employee.role === "admin" ? "default" : "secondary"}>
           {employee.role}
@@ -84,6 +154,7 @@ export default function EmployeesPage() {
     {
       key: "status",
       title: "Status",
+      filterable: true,
       render: (employee: Employee) => (
         <Badge
           variant={employee.status === "active" ? "default" : "destructive"}
@@ -93,6 +164,67 @@ export default function EmployeesPage() {
       ),
     },
   ];
+
+  const bulkActions = [
+    {
+      label: "Delete Selected",
+      action: (selected: Employee[]) => {
+        setSelectedEmployeesForAction(selected);
+        setBulkAction("delete");
+        setIsConfirmDialogOpen(true);
+      },
+    },
+    {
+      label: "Deactivate Selected",
+      action: (selected: Employee[]) => {
+        setSelectedEmployeesForAction(selected);
+        setBulkAction("deactivate");
+        setIsConfirmDialogOpen(true);
+      },
+    },
+    {
+      label: "Activate Selected",
+      action: (selected: Employee[]) => {
+        setSelectedEmployeesForAction(selected);
+        setBulkAction("activate");
+        setIsConfirmDialogOpen(true);
+      },
+    },
+  ];
+
+  const getConfirmationContent = () => {
+    if (!bulkAction || !selectedEmployeesForAction.length) return null;
+
+    const actionMap = {
+      delete: {
+        title: "Delete Employees",
+        description:
+          "Are you sure you want to delete the selected employees? This action cannot be undone.",
+        icon: Trash2,
+      },
+      deactivate: {
+        title: "Deactivate Employees",
+        description:
+          "Are you sure you want to deactivate the selected employees?",
+        icon: UserX,
+      },
+      activate: {
+        title: "Activate Employees",
+        description:
+          "Are you sure you want to activate the selected employees?",
+        icon: UserCheck,
+      },
+    };
+
+    const content = actionMap[bulkAction];
+    const Icon = content.icon;
+
+    return {
+      title: content.title,
+      description: content.description,
+      icon: <Icon className="h-6 w-6 text-destructive" />,
+    };
+  };
 
   return (
     <div className="space-y-4">
@@ -113,7 +245,37 @@ export default function EmployeesPage() {
         onRowClick={(employee) =>
           router.push(`/dashboard/employees/${employee.id}`)
         }
+        bulkActions={bulkActions}
       />
+
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {getConfirmationContent()?.icon}
+              {getConfirmationContent()?.title}
+            </DialogTitle>
+            <DialogDescription>
+              {getConfirmationContent()?.description}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsConfirmDialogOpen(false);
+                setBulkAction(null);
+                setSelectedEmployeesForAction([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleBulkAction}>
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

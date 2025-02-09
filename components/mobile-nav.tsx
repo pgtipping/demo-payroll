@@ -21,10 +21,21 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useAuth } from "@/lib/providers/auth-provider";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
-  const isAdmin = true; // This would come from your auth context
+  const { user, logout } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setOpen(false);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -97,6 +108,7 @@ export function MobileNav() {
               <Button
                 variant="ghost"
                 className="flex items-center gap-2 justify-start pl-0 text-lg font-semibold text-secondary"
+                onClick={handleLogout}
               >
                 <LogOut className="h-5 w-5" />
                 Logout
