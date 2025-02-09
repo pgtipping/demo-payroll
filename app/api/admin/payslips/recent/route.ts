@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
 
 export async function GET() {
   try {
@@ -11,33 +10,21 @@ export async function GET() {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const recentPayslips = await prisma.payslip.findMany({
-      take: 5,
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        employee: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/payslips/recent`,
+      {
+        headers: {
+          Authorization: `Bearer ${session.user.id}`,
         },
-      },
-    });
+      }
+    );
 
-    const formattedPayslips = recentPayslips.map((payslip) => ({
-      id: payslip.id,
-      employeeName: `${payslip.employee.firstName} ${payslip.employee.lastName}`,
-      period: new Date(payslip.periodStart).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      }),
-      amount: payslip.netAmount,
-      status: payslip.status,
-    }));
+    if (!response.ok) {
+      throw new Error("Failed to fetch recent payslips");
+    }
 
-    return NextResponse.json({ payslips: formattedPayslips });
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Failed to get recent payslips:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
