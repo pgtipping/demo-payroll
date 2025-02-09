@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { employeeApi, ApiProfileResponse } from "@/lib/services/api";
 import { showToast } from "@/components/ui/toast";
 import { useFeatures } from "@/lib/config/features";
+import type { FeatureFlag } from "@/lib/config/features";
 import {
   Card,
   CardContent,
@@ -33,6 +34,21 @@ import { Loader2, Upload, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageLoading } from "@/components/ui/loading";
+import { useTheme } from "next-themes";
+
+interface NotificationPreferences {
+  email: boolean;
+  push: boolean;
+  sms: boolean;
+}
+
+interface ProfileData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+}
 
 interface PasswordData {
   currentPassword: string;
@@ -48,67 +64,63 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [profileData, setProfileData] = useState<ApiProfileResponse>({
+  const [profileData, setProfileData] = useState<ProfileData>({
     firstName: "",
     lastName: "",
     email: "",
-    notifications: {
-      email: false,
-      push: false,
-      sms: false,
-    },
   });
   const [passwordData, setPasswordData] = useState<PasswordData>({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+  const [notificationPreferences, setNotificationPreferences] =
+    useState<NotificationPreferences>({
+      email: true,
+      push: false,
+      sms: false,
+    });
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
   const { isEnabled } = useFeatures();
+  const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    // MVP: Profile management is a core feature for all users
-    if (!isEnabled("profileManagement")) {
+    if (!isEnabled("payslipView")) {
       router.push("/dashboard");
       return;
     }
 
-    loadProfile();
+    loadSettings();
   }, [isEnabled, router]);
 
-  const loadProfile = async () => {
-    // MVP: Profile data loading is essential for user information management
-    if (!isEnabled("profileManagement")) {
-      router.push("/dashboard");
-      return;
-    }
+  const loadSettings = async () => {
     try {
-      const response = await employeeApi.getProfile();
-      if (response.data) {
-        const data = response.data as ApiProfileResponse;
-        setProfileData({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-          address: data.address,
-          notifications: data.notifications || {
-            email: false,
-            push: false,
-            sms: false,
-          },
-        });
-      } else if (response.error) {
-        showToast.error("Failed to load profile", {
-          description: response.error,
-        });
+      const [profileRes, notificationsRes] = await Promise.all([
+        fetch("/api/profile"),
+        fetch("/api/settings/notifications"),
+      ]);
+
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        setProfileData(profile);
+      }
+
+      if (notificationsRes.ok) {
+        const { preferences } = await notificationsRes.json();
+        setNotificationPreferences(preferences);
       }
     } catch (error) {
-      showToast.error("An unexpected error occurred");
+      console.error("Failed to load settings:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load settings. Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -116,21 +128,28 @@ export default function SettingsPage() {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // MVP: Profile updates are essential for user data management
-    if (!isEnabled("profileManagement")) {
-      return;
-    }
-    setIsSaving(true);
+    if (!isEnabled("payslipView")) return;
 
+    setIsSaving(true);
     try {
-      const response = await employeeApi.updateProfile(profileData);
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      showToast.success("Profile updated successfully");
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) throw new Error("Failed to update profile");
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully.",
+      });
     } catch (error) {
-      showToast.error("Failed to update profile", {
-        description: error instanceof Error ? error.message : undefined,
+      console.error("Failed to update profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again later.",
+        variant: "destructive",
       });
     } finally {
       setIsSaving(false);
@@ -139,44 +158,88 @@ export default function SettingsPage() {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // MVP: Password management is essential for user account security
-    if (!isEnabled("basicAuth")) {
-      return;
-    }
+    if (!isEnabled("payslipView")) return;
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showToast.error("Passwords do not match");
+      toast({
+        title: "Error",
+        description: "New passwords do not match.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsSaving(true);
-
     try {
-      const response = await employeeApi.changePassword(
-        passwordData.currentPassword,
-        passwordData.newPassword
-      );
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      showToast.success("Password changed successfully");
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to change password");
+
+      toast({
+        title: "Success",
+        description: "Password changed successfully.",
+      });
+
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
     } catch (error) {
-      showToast.error("Failed to change password", {
-        description: error instanceof Error ? error.message : undefined,
+      console.error("Failed to change password:", error);
+      toast({
+        title: "Error",
+        description: "Failed to change password. Please try again later.",
+        variant: "destructive",
       });
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleNotificationChange = async (
+    key: keyof NotificationPreferences
+  ) => {
+    const newPreferences = {
+      ...notificationPreferences,
+      [key]: !notificationPreferences[key],
+    };
+
+    try {
+      const response = await fetch("/api/settings/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferences: newPreferences }),
+      });
+
+      if (!response.ok)
+        throw new Error("Failed to update notification preferences");
+
+      setNotificationPreferences(newPreferences);
+      toast({
+        title: "Success",
+        description: "Notification preferences updated.",
+      });
+    } catch (error) {
+      console.error("Failed to update notification preferences:", error);
+      toast({
+        title: "Error",
+        description:
+          "Failed to update notification preferences. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // MVP: File attachment handling is essential for user support documentation
-    if (!isEnabled("profileManagement")) {
+    if (!isEnabled("payslipView")) {
       router.push("/dashboard");
       return;
     }
@@ -201,10 +264,7 @@ export default function SettingsPage() {
     type: "bug" | "feature" | "improvement"
   ) => {
     e.preventDefault();
-    // MVP: User feedback submission is essential for product improvement
-    if (!isEnabled("profileManagement")) {
-      return;
-    }
+    if (!isEnabled("payslipView")) return;
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
@@ -233,49 +293,28 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error("Failed to submit feedback");
 
       const data = await response.json();
-      showToast.success(data.message);
+      toast({
+        title: "Success",
+        description: data.message,
+      });
 
       e.currentTarget.reset();
       setAttachedFiles([]);
       setIsRateLimited(false);
     } catch (error) {
-      showToast.error("Failed to submit feedback", {
-        description: error instanceof Error ? error.message : undefined,
+      console.error("Failed to submit feedback:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback. Please try again later.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleNotificationSettings = async () => {
-    // MVP: Notification preferences management is essential for user communication
-    if (!isEnabled("profileManagement")) {
-      return;
-    }
-
-    try {
-      const response = await employeeApi.updateProfile({
-        ...profileData,
-        notifications: profileData.notifications,
-      });
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      showToast.success("Notification settings updated successfully");
-    } catch (error) {
-      showToast.error("Failed to update notification settings", {
-        description: error instanceof Error ? error.message : undefined,
-      });
-    }
-  };
-
   if (isLoading) {
     return <PageLoading />;
-  }
-
-  // MVP: Profile management view is restricted to authenticated users
-  if (!isEnabled("profileManagement")) {
-    return null;
   }
 
   return (
@@ -286,8 +325,9 @@ export default function SettingsPage() {
         <Tabs defaultValue="profile">
           <TabsList>
             <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="password">Password</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="appearance">Appearance</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="support">Support</TabsTrigger>
           </TabsList>
 
@@ -305,10 +345,10 @@ export default function SettingsPage() {
                         id="firstName"
                         value={profileData.firstName}
                         onChange={(e) =>
-                          setProfileData((prev) => ({
-                            ...prev,
+                          setProfileData({
+                            ...profileData,
                             firstName: e.target.value,
-                          }))
+                          })
                         }
                         required
                       />
@@ -320,10 +360,10 @@ export default function SettingsPage() {
                         id="lastName"
                         value={profileData.lastName}
                         onChange={(e) =>
-                          setProfileData((prev) => ({
-                            ...prev,
+                          setProfileData({
+                            ...profileData,
                             lastName: e.target.value,
-                          }))
+                          })
                         }
                         required
                       />
@@ -337,10 +377,10 @@ export default function SettingsPage() {
                       type="email"
                       value={profileData.email}
                       onChange={(e) =>
-                        setProfileData((prev) => ({
-                          ...prev,
+                        setProfileData({
+                          ...profileData,
                           email: e.target.value,
-                        }))
+                        })
                       }
                       required
                     />
@@ -353,10 +393,10 @@ export default function SettingsPage() {
                       type="tel"
                       value={profileData.phone || ""}
                       onChange={(e) =>
-                        setProfileData((prev) => ({
-                          ...prev,
+                        setProfileData({
+                          ...profileData,
                           phone: e.target.value,
-                        }))
+                        })
                       }
                     />
                   </div>
@@ -367,10 +407,10 @@ export default function SettingsPage() {
                       id="address"
                       value={profileData.address || ""}
                       onChange={(e) =>
-                        setProfileData((prev) => ({
-                          ...prev,
+                        setProfileData({
+                          ...profileData,
                           address: e.target.value,
-                        }))
+                        })
                       }
                     />
                   </div>
@@ -385,10 +425,91 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="password">
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Preferences</CardTitle>
+                <CardDescription>
+                  Choose how you want to receive notifications.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive notifications via email.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={notificationPreferences.email}
+                    onCheckedChange={() => handleNotificationChange("email")}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Push Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive notifications in your browser.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={notificationPreferences.push}
+                    onCheckedChange={() => handleNotificationChange("push")}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>SMS Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive notifications via SMS.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={notificationPreferences.sms}
+                    onCheckedChange={() => handleNotificationChange("sms")}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="appearance">
+            <Card>
+              <CardHeader>
+                <CardTitle>Appearance</CardTitle>
+                <CardDescription>
+                  Customize how the app looks and feels.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Theme</Label>
+                  <Select value={theme} onValueChange={setTheme}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="dark">Dark</SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Select your preferred theme.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security">
             <Card>
               <CardHeader>
                 <CardTitle>Change Password</CardTitle>
+                <CardDescription>
+                  Update your password to keep your account secure.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handlePasswordSubmit} className="space-y-4">
@@ -399,15 +520,14 @@ export default function SettingsPage() {
                       type="password"
                       value={passwordData.currentPassword}
                       onChange={(e) =>
-                        setPasswordData((prev) => ({
-                          ...prev,
+                        setPasswordData({
+                          ...passwordData,
                           currentPassword: e.target.value,
-                        }))
+                        })
                       }
                       required
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
                     <Input
@@ -415,15 +535,14 @@ export default function SettingsPage() {
                       type="password"
                       value={passwordData.newPassword}
                       onChange={(e) =>
-                        setPasswordData((prev) => ({
-                          ...prev,
+                        setPasswordData({
+                          ...passwordData,
                           newPassword: e.target.value,
-                        }))
+                        })
                       }
                       required
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">
                       Confirm New Password
@@ -433,114 +552,18 @@ export default function SettingsPage() {
                       type="password"
                       value={passwordData.confirmPassword}
                       onChange={(e) =>
-                        setPasswordData((prev) => ({
-                          ...prev,
+                        setPasswordData({
+                          ...passwordData,
                           confirmPassword: e.target.value,
-                        }))
+                        })
                       }
                       required
                     />
                   </div>
-
-                  <div className="flex justify-end">
-                    <Button type="submit" disabled={isSaving}>
-                      {isSaving ? "Changing..." : "Change Password"}
-                    </Button>
-                  </div>
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? "Changing Password..." : "Change Password"}
+                  </Button>
                 </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="notifications" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
-                  Manage how you receive notifications.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="emailNotifications">
-                      Email Notifications
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive notifications via email
-                    </p>
-                  </div>
-                  <Switch
-                    id="emailNotifications"
-                    checked={profileData.notifications.email}
-                    onCheckedChange={(checked) =>
-                      setProfileData({
-                        ...profileData,
-                        notifications: {
-                          ...profileData.notifications,
-                          email: checked,
-                        },
-                      })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="smsNotifications">SMS Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive notifications via SMS
-                    </p>
-                  </div>
-                  <Switch
-                    id="smsNotifications"
-                    checked={profileData.notifications.sms}
-                    onCheckedChange={(checked) =>
-                      setProfileData({
-                        ...profileData,
-                        notifications: {
-                          ...profileData.notifications,
-                          sms: checked,
-                        },
-                      })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="payslipNotifications">
-                      New Payslip Alerts
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified when a new payslip is available
-                    </p>
-                  </div>
-                  <Switch
-                    id="payslipNotifications"
-                    checked={profileData.notifications.push}
-                    onCheckedChange={(checked) =>
-                      setProfileData({
-                        ...profileData,
-                        notifications: {
-                          ...profileData.notifications,
-                          push: checked,
-                        },
-                      })
-                    }
-                  />
-                </div>
-                <Button
-                  onClick={handleNotificationSettings}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
               </CardContent>
             </Card>
           </TabsContent>
