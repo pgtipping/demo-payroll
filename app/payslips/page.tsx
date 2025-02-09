@@ -1,13 +1,70 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { useFeatures } from "@/lib/config/features";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Payslip {
+  id: string;
+  month: string;
+  grossPay: number;
+  deductions: number;
+  netPay: number;
+  status: string;
+  paidOn: string;
+}
+
+interface YTDSummary {
+  totalEarnings: number;
+  totalDeductions: number;
+  netIncome: number;
+}
 
 // MVP: Basic payslip viewing functionality for employees
 export default function PayslipsPage() {
   const { isEnabled } = useFeatures();
+  const { toast } = useToast();
+  const [payslips, setPayslips] = useState<Payslip[]>([]);
+  const [ytdSummary, setYtdSummary] = useState<YTDSummary>({
+    totalEarnings: 0,
+    totalDeductions: 0,
+    netIncome: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPayslips = async () => {
+      try {
+        const response = await fetch("/api/payslips");
+        if (!response.ok) {
+          throw new Error("Failed to fetch payslips");
+        }
+        const data = await response.json();
+        setPayslips(data.payslips);
+        setYtdSummary(data.ytdSummary);
+      } catch (error) {
+        console.error("Error fetching payslips:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load payslips. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isEnabled("payslipView")) {
+      fetchPayslips();
+    } else {
+      setIsLoading(false);
+    }
+  }, [isEnabled, toast]);
 
   // MVP: Only show if payslip viewing is enabled
   if (!isEnabled("payslipView")) {
@@ -20,45 +77,31 @@ export default function PayslipsPage() {
     );
   }
 
-  // MVP: Basic payslip data structure
-  const payslips = [
-    {
-      id: "jan-2024",
-      month: "January 2024",
-      grossPay: 4800.0,
-      deductions: 300.0,
-      netPay: 4500.0,
-      status: "Paid",
-      paidOn: "2024-01-25",
-    },
-    {
-      id: "dec-2023",
-      month: "December 2023",
-      grossPay: 4800.0,
-      deductions: 300.0,
-      netPay: 4500.0,
-      status: "Paid",
-      paidOn: "2023-12-24",
-    },
-    {
-      id: "nov-2023",
-      month: "November 2023",
-      grossPay: 4800.0,
-      deductions: 300.0,
-      netPay: 4500.0,
-      status: "Paid",
-      paidOn: "2023-11-25",
-    },
-    {
-      id: "oct-2023",
-      month: "October 2023",
-      grossPay: 4800.0,
-      deductions: 300.0,
-      netPay: 4500.0,
-      status: "Paid",
-      paidOn: "2023-10-25",
-    },
-  ];
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <p className="text-muted-foreground">Loading payslips...</p>
+      </div>
+    );
+  }
+
+  const handleDownloadAll = async () => {
+    try {
+      // MVP: Basic download functionality
+      toast({
+        title: "Download Started",
+        description: "Your payslips are being prepared for download.",
+      });
+      // TODO: Implement actual download functionality
+    } catch (error) {
+      console.error("Error downloading payslips:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download payslips. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -66,7 +109,7 @@ export default function PayslipsPage() {
         <h1 className="text-2xl font-bold">Pay Slips</h1>
         {/* MVP: Basic download functionality */}
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleDownloadAll}>
             <Download className="mr-2 h-4 w-4" />
             Download All
           </Button>
@@ -80,53 +123,59 @@ export default function PayslipsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {payslips.map((payslip) => (
-              <Link
-                key={payslip.id}
-                href={`/payslips/${payslip.id}`}
-                className="block"
-              >
-                <div className="flex flex-col gap-4 rounded-lg border p-4 hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{payslip.month}</span>
-                      <Badge variant="outline">{payslip.status}</Badge>
+            {payslips.length > 0 ? (
+              payslips.map((payslip) => (
+                <Link
+                  key={payslip.id}
+                  href={`/payslips/${payslip.id}`}
+                  className="block"
+                >
+                  <div className="flex flex-col gap-4 rounded-lg border p-4 hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{payslip.month}</span>
+                        <Badge variant="outline">{payslip.status}</Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Paid on {new Date(payslip.paidOn).toLocaleDateString()}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Paid on {new Date(payslip.paidOn).toLocaleDateString()}
-                    </div>
-                  </div>
 
-                  <div className="flex items-center justify-between gap-4 sm:flex-row-reverse">
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          Gross Pay:
-                        </span>
-                        <span className="font-medium">
-                          ${payslip.grossPay.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          Deductions:
-                        </span>
-                        <span className="font-medium text-secondary">
-                          -${payslip.deductions.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Net Pay:</span>
-                        <span className="font-bold text-primary">
-                          ${payslip.netPay.toFixed(2)}
-                        </span>
+                    <div className="flex items-center justify-between gap-4 sm:flex-row-reverse">
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">
+                            Gross Pay:
+                          </span>
+                          <span className="font-medium">
+                            ${payslip.grossPay.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">
+                            Deductions:
+                          </span>
+                          <span className="font-medium text-secondary">
+                            -${payslip.deductions.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Net Pay:</span>
+                          <span className="font-bold text-primary">
+                            ${payslip.netPay.toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                No payslips found.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -142,17 +191,23 @@ export default function PayslipsPage() {
               <div className="text-sm text-muted-foreground">
                 Total Earnings
               </div>
-              <div className="text-2xl font-bold">$57,600.00</div>
+              <div className="text-2xl font-bold">
+                ${ytdSummary.totalEarnings.toFixed(2)}
+              </div>
             </div>
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">
                 Total Deductions
               </div>
-              <div className="text-2xl font-bold text-secondary">$3,600.00</div>
+              <div className="text-2xl font-bold text-secondary">
+                ${ytdSummary.totalDeductions.toFixed(2)}
+              </div>
             </div>
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Net Income</div>
-              <div className="text-2xl font-bold text-primary">$54,000.00</div>
+              <div className="text-2xl font-bold text-primary">
+                ${ytdSummary.netIncome.toFixed(2)}
+              </div>
             </div>
           </div>
         </CardContent>

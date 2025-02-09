@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFeatures } from "@/lib/config/features";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -21,103 +21,98 @@ import {
   Calendar,
   Clock,
 } from "lucide-react";
+import { LucideIcon } from "lucide-react";
+
+interface Payslip {
+  id: string;
+  employeeName: string;
+  period: string;
+  amount: number;
+  status: string;
+}
+
+interface QuickAction {
+  name: string;
+  icon: LucideIcon;
+  href: string;
+  show: boolean;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { isEnabled } = useFeatures();
 
-  // MVP: Quick actions for common tasks
-  const quickActions = [
-    {
-      name: "View Payslips",
-      icon: FileText,
-      href: "/payslips",
-      // MVP: Payslip viewing is a core feature for all users
-      show: isEnabled("payslipView"),
-    },
-    {
-      name: "Manage Employees",
-      icon: Users,
-      href: "/dashboard/employees",
-      // MVP: Employee management is a core feature for admin users
-      show: user?.role === "admin" && isEnabled("employeeManagement"),
-    },
-    {
-      name: "Process Payroll",
-      icon: Calculator,
-      href: "/dashboard/payroll",
-      // MVP: Payroll processing is a core feature for admin users
-      show: user?.role === "admin" && isEnabled("payrollProcessing"),
-    },
-  ];
+  // Render appropriate dashboard based on user role
+  if (!user) {
+    return null; // or loading state
+  }
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">
-        Welcome, {user ? `${user.firstName} ${user.lastName}` : "User"}
-      </h1>
-
-      {/* Quick Actions */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {quickActions
-              .filter((action) => action.show)
-              .map((action) => (
-                <Button
-                  key={action.name}
-                  variant="outline"
-                  className="h-24 flex flex-col items-center justify-center gap-2"
-                  onClick={() => router.push(action.href)}
-                >
-                  <action.icon className="h-6 w-6" />
-                  {action.name}
-                </Button>
-              ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity - MVP: Basic activity tracking */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Your recent payroll activities will appear here.
-          </p>
-        </CardContent>
-      </Card>
+      {user.role === "admin" ? <AdminDashboard /> : <EmployeeDashboard />}
     </div>
   );
 }
 
 function AdminDashboard() {
   const router = useRouter();
+  const { isEnabled } = useFeatures();
+  const [employeeCount, setEmployeeCount] = useState(0);
+  const [monthlyPayroll, setMonthlyPayroll] = useState(0);
+  const [recentPayslips, setRecentPayslips] = useState<Payslip[]>([]);
 
-  const quickActions = [
+  useEffect(() => {
+    // MVP: Fetch dashboard data
+    const fetchDashboardData = async () => {
+      try {
+        const [employeesRes, payrollRes, payslipsRes] = await Promise.all([
+          fetch("/api/admin/employees/count"),
+          fetch("/api/admin/payroll/monthly-total"),
+          fetch("/api/admin/payslips/recent"),
+        ]);
+
+        if (employeesRes.ok) {
+          const { count } = await employeesRes.json();
+          setEmployeeCount(count);
+        }
+
+        if (payrollRes.ok) {
+          const { total } = await payrollRes.json();
+          setMonthlyPayroll(total);
+        }
+
+        if (payslipsRes.ok) {
+          const { payslips } = await payslipsRes.json();
+          setRecentPayslips(payslips);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // MVP: Quick actions for common tasks
+  const quickActions: QuickAction[] = [
     {
-      title: "Manage Employees",
-      description: "Add, edit, or view employee details",
+      name: "View Payslips",
+      icon: FileText,
+      href: "/payslips",
+      show: isEnabled("payslipView"),
+    },
+    {
+      name: "Manage Employees",
       icon: Users,
       href: "/dashboard/employees",
+      show: isEnabled("employeeManagement"),
     },
     {
-      title: "Process Payroll",
-      description: "Run payroll for the current period",
+      name: "Process Payroll",
       icon: Calculator,
       href: "/dashboard/payroll",
-    },
-    {
-      title: "View Payslips",
-      description: "Access all employee payslips",
-      icon: FileText,
-      href: "/dashboard/payslips",
+      show: isEnabled("payrollProcessing"),
     },
   ];
 
@@ -134,7 +129,7 @@ function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{employeeCount}</div>
             <p className="text-xs text-muted-foreground">+2 from last month</p>
           </CardContent>
         </Card>
@@ -146,7 +141,9 @@ function AdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231.89</div>
+            <div className="text-2xl font-bold">
+              ${monthlyPayroll.toFixed(2)}
+            </div>
             <p className="text-xs text-muted-foreground">
               +20.1% from last month
             </p>
@@ -169,23 +166,62 @@ function AdminDashboard() {
           const Icon = action.icon;
           return (
             <Card
-              key={action.title}
+              key={action.name}
               className="cursor-pointer hover:bg-muted/50"
               onClick={() => router.push(action.href)}
             >
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Icon className="h-5 w-5" />
-                  <CardTitle>{action.title}</CardTitle>
+                  <CardTitle>{action.name}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
-                <CardDescription>{action.description}</CardDescription>
+                <CardDescription>{action.name}</CardDescription>
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      {/* Recent Payslips */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Payslips</CardTitle>
+          <CardDescription>Latest processed payslips</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentPayslips.length > 0 ? (
+            <div className="space-y-4">
+              {recentPayslips.map((payslip) => (
+                <div
+                  key={payslip.id}
+                  className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg cursor-pointer"
+                  onClick={() => router.push(`/payslips/${payslip.id}`)}
+                >
+                  <div className="flex items-center gap-4">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">{payslip.employeeName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {payslip.period}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">${payslip.amount.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {payslip.status}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No recent payslips found.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -193,6 +229,34 @@ function AdminDashboard() {
 function EmployeeDashboard() {
   const router = useRouter();
   const { user } = useAuth();
+  const [recentPayslips, setRecentPayslips] = useState<Payslip[]>([]);
+  const [ytdEarnings, setYtdEarnings] = useState(0);
+
+  useEffect(() => {
+    // MVP: Fetch employee dashboard data
+    const fetchDashboardData = async () => {
+      try {
+        const [payslipsRes, earningsRes] = await Promise.all([
+          fetch("/api/payslips/recent"),
+          fetch("/api/employee/ytd-earnings"),
+        ]);
+
+        if (payslipsRes.ok) {
+          const { payslips } = await payslipsRes.json();
+          setRecentPayslips(payslips);
+        }
+
+        if (earningsRes.ok) {
+          const { total } = await earningsRes.json();
+          setYtdEarnings(total);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -225,7 +289,7 @@ function EmployeeDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$12,234.56</div>
+            <div className="text-2xl font-bold">${ytdEarnings.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">As of February 2024</p>
           </CardContent>
         </Card>

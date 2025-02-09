@@ -1,228 +1,230 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { payslipApi } from "@/lib/services/api";
-import { showToast } from "@/components/ui/toast";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { useFeatures } from "@/lib/config/features";
-import { PayslipData } from "@/lib/types/payslip";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Eye } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageLoading } from "@/components/ui/loading";
-import { PayslipPDF } from "@/components/PayslipPDF";
 import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Download, Printer } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Separator } from "@/components/ui/separator";
 
-export default function PayslipDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const [payslip, setPayslip] = useState<PayslipData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showPreview, setShowPreview] = useState(false);
-  const router = useRouter();
+interface PayslipDetail {
+  id: string;
+  month: string;
+  employeeName: string;
+  employeeId: string;
+  department: string;
+  position: string;
+  grossPay: number;
+  deductions: {
+    name: string;
+    amount: number;
+  }[];
+  netPay: number;
+  status: string;
+  paidOn: string;
+}
+
+export default function PayslipDetailPage() {
   const { isEnabled } = useFeatures();
+  const router = useRouter();
+  const params = useParams();
+  const { toast } = useToast();
+  const [payslip, setPayslip] = useState<PayslipDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // MVP: Payslip viewing is a core feature for employee compensation transparency
-    if (!isEnabled("payslipView")) {
-      router.push("/dashboard");
-      return;
-    }
-
-    loadPayslip();
-  }, [isEnabled, router, params.id]);
-
-  const loadPayslip = async () => {
-    // MVP: Payslip data loading is essential for employee compensation management
-    if (!isEnabled("payslipView")) {
-      router.push("/dashboard");
-      return;
-    }
-    try {
-      const response = await payslipApi.getPayslip(params.id);
-      if (response.data) {
-        setPayslip(response.data as PayslipData);
-      } else if (response.error) {
-        showToast.error("Failed to load payslip", {
-          description: response.error,
+    const fetchPayslipDetails = async () => {
+      try {
+        const response = await fetch(`/api/payslips/${params.id}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch payslip details");
+        }
+        const data = await response.json();
+        setPayslip(data);
+      } catch (error) {
+        console.error("Error fetching payslip details:", error);
+        toast({
+          title: "Error",
+          description:
+            "Failed to load payslip details. Please try again later.",
+          variant: "destructive",
         });
-        router.push("/payslips");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      showToast.error("An unexpected error occurred", {
-        description: error instanceof Error ? error.message : "Unknown error",
-      });
-      router.push("/payslips");
-    } finally {
+    };
+
+    if (isEnabled("payslipView")) {
+      fetchPayslipDetails();
+    } else {
       setIsLoading(false);
     }
-  };
+  }, [isEnabled, params.id, toast]);
 
-  const handleDownload = async () => {
-    // MVP: Payslip downloading is essential for employee record keeping
-    if (!isEnabled("payslipView")) {
-      return;
-    }
-    try {
-      const response = await payslipApi.downloadPayslip(params.id);
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      if (!response.data || !(response.data instanceof ArrayBuffer)) {
-        throw new Error("Invalid PDF data received");
-      }
-
-      // Create blob from response data
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
-
-      // Create temporary link and trigger download
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `payslip-${payslip?.period.replace("/", "-")}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      showToast.success("Payslip downloaded successfully");
-    } catch (error) {
-      showToast.error("Failed to download payslip", {
-        description: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  };
+  // MVP: Only show if payslip viewing is enabled
+  if (!isEnabled("payslipView")) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <p className="text-muted-foreground">
+          Payslip viewing is not available.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
-    return <PageLoading />;
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <p className="text-muted-foreground">Loading payslip details...</p>
+      </div>
+    );
   }
 
   if (!payslip) {
-    return null;
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <p className="text-muted-foreground">Payslip not found.</p>
+      </div>
+    );
   }
 
+  const handleDownload = async () => {
+    try {
+      // MVP: Basic download functionality
+      toast({
+        title: "Download Started",
+        description: "Your payslip is being prepared for download.",
+      });
+      // TODO: Implement actual download functionality
+    } catch (error) {
+      console.error("Error downloading payslip:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download payslip. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.push("/payslips")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" className="gap-2" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+          Back to Payslips
         </Button>
-        <h1 className="text-2xl font-bold">Payslip Details</h1>
-        <div className="ml-auto space-x-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowPreview(!showPreview)}
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            {showPreview ? "Hide Preview" : "Show Preview"}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print
           </Button>
-          <Button onClick={handleDownload}>
+          <Button variant="outline" onClick={handleDownload}>
             <Download className="mr-2 h-4 w-4" />
             Download PDF
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Period</span>
-              <span className="font-medium">{payslip.period}</span>
+      <Card className="print:shadow-none">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>{payslip.month}</CardTitle>
+              <CardDescription>Payslip Details</CardDescription>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Status</span>
-              <Badge
-                variant={payslip.status === "paid" ? "default" : "secondary"}
-              >
-                {payslip.status}
-              </Badge>
+            <Badge variant="outline">{payslip.status}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Employee Information */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">Employee Information</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="font-medium">{payslip.employeeName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Employee ID</p>
+                <p className="font-medium">{payslip.employeeId}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Department</p>
+                <p className="font-medium">{payslip.department}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Position</p>
+                <p className="font-medium">{payslip.position}</p>
+              </div>
             </div>
-            {payslip.paidOn && (
+          </div>
+
+          <Separator />
+
+          {/* Earnings & Deductions */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">Earnings & Deductions</h3>
+            <div className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Paid On</span>
+                <span className="font-medium">Gross Pay</span>
                 <span className="font-medium">
+                  ${payslip.grossPay.toFixed(2)}
+                </span>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Deductions</p>
+                {payslip.deductions.map((deduction, index) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span>{deduction.name}</span>
+                    <span className="text-secondary">
+                      -${deduction.amount.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <Separator />
+              <div className="flex justify-between">
+                <span className="font-semibold">Net Pay</span>
+                <span className="font-bold text-primary">
+                  ${payslip.netPay.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Payment Information */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">Payment Information</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Payment Date</p>
+                <p className="font-medium">
                   {new Date(payslip.paidOn).toLocaleDateString()}
-                </span>
+                </p>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Salary Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Gross Salary</span>
-              <span className="font-medium">
-                {payslip.currency} {payslip.grossSalary.toFixed(2)}
-              </span>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tax</span>
-                <span className="text-destructive">
-                  - {payslip.currency} {payslip.deductions.tax.toFixed(2)}
-                </span>
+              <div>
+                <p className="text-sm text-muted-foreground">Payment Method</p>
+                <p className="font-medium">Direct Deposit</p>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Health Insurance</span>
-                <span className="text-destructive">
-                  - {payslip.currency}{" "}
-                  {payslip.deductions.healthInsurance.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Pension</span>
-                <span className="text-destructive">
-                  - {payslip.currency} {payslip.deductions.pension.toFixed(2)}
-                </span>
-              </div>
-              {payslip.deductions.other && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    Other Deductions
-                  </span>
-                  <span className="text-destructive">
-                    - {payslip.currency} {payslip.deductions.other.toFixed(2)}
-                  </span>
-                </div>
-              )}
             </div>
-            <div className="flex justify-between border-t pt-4">
-              <span className="font-medium">Net Salary</span>
-              <span className="font-bold text-primary">
-                {payslip.currency} {payslip.netSalary.toFixed(2)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {showPreview && (
-        <Card>
-          <CardHeader>
-            {/* MVP: Payslip preview is essential for employee verification before download */}
-            <CardTitle>PDF Preview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="aspect-[1/1.4142] w-full border">
-              <PayslipPDF data={payslip} />
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
