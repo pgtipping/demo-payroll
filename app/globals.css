@@ -36,14 +36,14 @@
   }
 
   :root {
-    --primary: 214 100% 48%; /* #0070f3 */
+    --primary: 214 100% 48%; /* #0066FF - Adjusted for better contrast */
     --secondary: 0 74% 51%; /* #dc2626 */
     --background: 0 0% 100%; /* #ffffff */
     --foreground: 0 0% 0%; /* #000000 */
     --muted: 220 9% 46%; /* #6b7280 */
     --border: 220 13% 91%; /* #e5e7eb */
-    --success: 142 71% 40%; /* #10b981 */
-    --warning: 35 92% 51%; /* #f59e0b */
+    --success: 142 76% 36%; /* #15803d - Darker green for better contrast */
+    --warning: 45 93% 47%; /* #f59e0b - Adjusted amber */
     --error: 0 84% 60%; /* #ef4444 */
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -68,9 +68,9 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --primary: 214 100% 60%; /* Brighter in dark mode for contrast */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 74% 61%; /* Brighter in dark mode */
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
     --muted-foreground: 0 0% 63.9%;
