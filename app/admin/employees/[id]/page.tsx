@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft } from "lucide-react";
+import employeeApi, { Employee } from "@/lib/services/employeeApi";
 
 interface EmployeeFormData {
   firstName: string;
@@ -67,10 +68,16 @@ export default function EmployeeFormPage() {
 
   const loadEmployee = async () => {
     try {
-      const response = await fetch(`/api/admin/employees/${params.id}`);
-      if (!response.ok) throw new Error("Failed to fetch employee");
-      const data = await response.json();
-      setFormData(data);
+      const employee = await employeeApi.getEmployeeById(params.id);
+      setFormData({
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        department: employee.department || "",
+        position: employee.position || "",
+        status: employee.status || "active",
+        joinDate: new Date(employee.createdAt).toISOString().split("T")[0],
+      });
     } catch (error: any) {
       console.error("Error fetching employee:", error);
       toast({
@@ -89,16 +96,11 @@ export default function EmployeeFormPage() {
     setIsSaving(true);
 
     try {
-      const response = await fetch(
-        `/api/admin/employees${isNew ? "" : `/${params.id}`}`,
-        {
-          method: isNew ? "POST" : "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        }
-      );
-
-      if (!response.ok) throw new Error("Failed to save employee");
+      if (isNew) {
+        await employeeApi.createEmployee(formData);
+      } else {
+        await employeeApi.updateEmployee(params.id, formData);
+      }
 
       toast({
         title: "Success",

@@ -38,17 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-interface Employee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  department: string;
-  position: string;
-  status: "active" | "inactive";
-  joinDate: string;
-}
+import employeeApi, { Employee } from "@/lib/services/employeeApi";
 
 export default function EmployeesPage() {
   const router = useRouter();
@@ -71,10 +61,8 @@ export default function EmployeesPage() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch("/api/admin/employees");
-      if (!response.ok) throw new Error("Failed to fetch employees");
-      const data = await response.json();
-      setEmployees(data.employees);
+      const employees = await employeeApi.getEmployees();
+      setEmployees(employees);
     } catch (error) {
       console.error("Error fetching employees:", error);
       toast({
@@ -99,11 +87,7 @@ export default function EmployeesPage() {
     if (!confirm("Are you sure you want to delete this employee?")) return;
 
     try {
-      const response = await fetch(`/api/admin/employees/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete employee");
-
+      await employeeApi.deleteEmployee(id);
       toast({
         title: "Success",
         description: "Employee deleted successfully.",
