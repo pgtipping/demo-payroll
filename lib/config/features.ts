@@ -9,33 +9,48 @@ export type FeatureFlag =
   | "onDemandPay"
   | "wellnessProgram";
 
+interface Feature {
+  enabled: boolean;
+  description: string;
+}
+
+export const FEATURES: Record<FeatureFlag, Feature> = {
+  payslipView: {
+    enabled: true,
+    description: "Basic payslip viewing functionality",
+  },
+  employeeManagement: {
+    enabled: true,
+    description: "Core employee management functionality",
+  },
+  payrollProcessing: {
+    enabled: true,
+    description: "Basic payroll processing capabilities",
+  },
+  onDemandPay: {
+    enabled: false,
+    description: "On-demand pay access (advanced feature)",
+  },
+  wellnessProgram: {
+    enabled: false,
+    description: "Employee wellness program (advanced feature)",
+  },
+};
+
 interface FeaturesContextType {
+  features: typeof FEATURES;
   isEnabled: (feature: FeatureFlag) => boolean;
 }
 
-// MVP features that are enabled by default
-const MVP_FEATURES: Record<FeatureFlag, boolean> = {
-  payslipView: true,
-  employeeManagement: true,
-  payrollProcessing: true,
-  onDemandPay: false,
-  wellnessProgram: false,
-};
-
-export const FeaturesContext = createContext<FeaturesContextType>({
+export const FeatureFlagContext = createContext<FeaturesContextType>({
+  features: FEATURES,
   isEnabled: () => false,
 });
 
 export const useFeatures = () => {
-  const context = useContext(FeaturesContext);
+  const context = useContext(FeatureFlagContext);
   if (!context) {
-    throw new Error("useFeatures must be used within a FeaturesProvider");
+    throw new Error("useFeatures must be used within a FeatureFlagProvider");
   }
   return context;
-};
-
-export const createFeaturesProvider = () => {
-  return {
-    isEnabled: (feature: FeatureFlag) => MVP_FEATURES[feature] ?? false,
-  };
 };

@@ -1,0 +1,23 @@
+/* Ensure links are distinguishable without relying on color */
+a[href] {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 0.1em;
+}
+
+/* Specific style for componentdriven.org links */
+a[href$="componentdriven.org"] {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 0.1em;
+  padding-right: 1.25em;
+  position: relative;
+}
+
+a[href$="componentdriven.org"]::after {
+  content: "↗";
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 0.875em;
+}

@@ -1,13 +1,16 @@
 "use client";
 
 import { ReactNode } from "react";
-import { FeatureFlagContext, FEATURES } from "../config/features";
+import {
+  FeatureFlagContext,
+  FEATURES,
+  type FeatureFlag,
+} from "../config/features";
 
 export function FeatureFlagProvider({ children }: { children: ReactNode }) {
   const value = {
     features: FEATURES,
-    isEnabled: (feature: keyof typeof FEATURES) =>
-      FEATURES[feature]?.enabled ?? false,
+    isEnabled: (feature: FeatureFlag) => FEATURES[feature]?.enabled ?? false,
   };
 
   return (

@@ -46,7 +46,7 @@
     --border: 220 13% 91%; /* #e5e7eb */
     --destructive: 0 84% 40%; /* #cc1818 - Darker red for better contrast */
     --destructive-foreground: 0 0% 100%; /* White text */
-    --success: 142 72% 29%; /* #15803d - Proper green color */
+    --success: 142 76% 27%; /* #166534 - Even darker green for better contrast */
     --success-foreground: 0 0% 100%; /* White text */
     --warning: 45 93% 47%; /* #f59e0b - Adjusted amber */
     --warning-foreground: 0 0% 0%; /* Black text */
@@ -80,7 +80,7 @@
     --secondary-foreground: 0 0% 100%;
     --destructive: 0 84% 60%; /* Brighter red in dark mode */
     --destructive-foreground: 0 0% 98%;
-    --success: 142 70% 45%; /* Brighter green in dark mode */
+    --success: 142 70% 35%; /* Adjusted darker green for dark mode */
     --success-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
     --muted-foreground: 0 0% 63.9%;

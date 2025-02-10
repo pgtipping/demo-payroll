@@ -54,8 +54,12 @@ export const Sizes: Story = {
 export const WithCustomColors: Story = {
   render: () => (
     <div className="flex gap-4">
-      <Badge className="bg-blue-700 text-white">Custom Blue</Badge>
-      <Badge className="bg-purple-700 text-white">Custom Purple</Badge>
+      <Badge className="bg-blue-800 text-white hover:bg-blue-900">
+        Custom Blue
+      </Badge>
+      <Badge className="bg-purple-800 text-white hover:bg-purple-900">
+        Custom Purple
+      </Badge>
     </div>
   ),
 };
