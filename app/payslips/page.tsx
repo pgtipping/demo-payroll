@@ -5,9 +5,11 @@ import { useFeatures } from "@/lib/config/features";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, ChevronRight } from "lucide-react";
+import { Download, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { generatePayslipPDF } from "@/lib/utils/pdf";
 
 interface Payslip {
   id: string;
@@ -36,6 +38,7 @@ export default function PayslipsPage() {
     netIncome: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const fetchPayslips = async () => {
@@ -79,20 +82,77 @@ export default function PayslipsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <p className="text-muted-foreground">Loading payslips...</p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   const handleDownloadAll = async () => {
     try {
-      // MVP: Basic download functionality
+      setIsDownloading(true);
       toast({
         title: "Download Started",
         description: "Your payslips are being prepared for download.",
       });
-      // TODO: Implement actual download functionality
+
+      // Generate PDFs for all payslips
+      const pdfs = await Promise.all(
+        payslips.map(async (payslip) => {
+          const response = await fetch(`/api/payslips/${payslip.id}`);
+          if (!response.ok)
+            throw new Error(`Failed to fetch payslip ${payslip.id}`);
+          const data = await response.json();
+          return generatePayslipPDF(data);
+        })
+      );
+
+      // Combine PDFs and download
+      const blob = new Blob(pdfs, { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `payslips-${new Date().toISOString().split("T")[0]}.pdf`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Complete",
+        description: "Your payslips have been downloaded successfully.",
+      });
     } catch (error) {
       console.error("Error downloading payslips:", error);
       toast({
@@ -100,6 +160,8 @@ export default function PayslipsPage() {
         description: "Failed to download payslips. Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -107,11 +169,18 @@ export default function PayslipsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Pay Slips</h1>
-        {/* MVP: Basic download functionality */}
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleDownloadAll}>
-            <Download className="mr-2 h-4 w-4" />
-            Download All
+          <Button
+            variant="outline"
+            onClick={handleDownloadAll}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {isDownloading ? "Downloading..." : "Download All"}
           </Button>
         </div>
       </div>

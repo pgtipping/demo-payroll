@@ -2,10 +2,13 @@
   "extends": [
     "next/core-web-vitals",
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended"
+    "plugin:@typescript-eslint/recommended",
+    "plugin:storybook/recommended"
   ],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": [
+    "@typescript-eslint"
+  ],
   "root": true,
   "rules": {
     "@typescript-eslint/no-unused-vars": "warn",
@@ -13,7 +16,9 @@
     "react/no-unescaped-entities": "off"
   },
   "parserOptions": {
-    "project": ["Frontend/tsconfig.json"],
+    "project": [
+      "Frontend/tsconfig.json"
+    ],
     "tsconfigRootDir": "..",
     "ecmaVersion": 2020,
     "sourceType": "module"
@@ -25,7 +30,9 @@
     "import/resolver": {
       "typescript": {
         "alwaysTryTypes": true,
-        "project": ["Frontend/tsconfig.json"]
+        "project": [
+          "Frontend/tsconfig.json"
+        ]
       }
     }
   },

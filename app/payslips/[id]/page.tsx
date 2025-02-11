@@ -12,9 +12,11 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Download, Printer } from "lucide-react";
+import { ArrowLeft, Download, Printer, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { generatePayslipPDF } from "@/lib/utils/pdf";
 
 interface PayslipDetail {
   id: string;
@@ -40,6 +42,7 @@ export default function PayslipDetailPage() {
   const { toast } = useToast();
   const [payslip, setPayslip] = useState<PayslipDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const fetchPayslipDetails = async () => {
@@ -70,7 +73,6 @@ export default function PayslipDetailPage() {
     }
   }, [isEnabled, params.id, toast]);
 
-  // MVP: Only show if payslip viewing is enabled
   if (!isEnabled("payslipView")) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
@@ -83,8 +85,57 @@ export default function PayslipDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <p className="text-muted-foreground">Loading payslip details...</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-32" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-6 w-20" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <Skeleton className="h-5 w-40" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-5 w-32" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <Skeleton className="h-5 w-40" />
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-5 w-24" />
+                </div>
+                {[1, 2].map((i) => (
+                  <div key={i} className="flex justify-between">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -99,12 +150,30 @@ export default function PayslipDetailPage() {
 
   const handleDownload = async () => {
     try {
-      // MVP: Basic download functionality
+      setIsDownloading(true);
       toast({
         title: "Download Started",
         description: "Your payslip is being prepared for download.",
       });
-      // TODO: Implement actual download functionality
+
+      const pdf = await generatePayslipPDF(payslip);
+      const blob = new Blob([pdf], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `payslip-${payslip.month.replace(/\s+/g, "-")}.pdf`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Complete",
+        description: "Your payslip has been downloaded successfully.",
+      });
     } catch (error) {
       console.error("Error downloading payslip:", error);
       toast({
@@ -112,6 +181,8 @@ export default function PayslipDetailPage() {
         description: "Failed to download payslip. Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -131,9 +202,17 @@ export default function PayslipDetailPage() {
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>
-          <Button variant="outline" onClick={handleDownload}>
-            <Download className="mr-2 h-4 w-4" />
-            Download PDF
+          <Button
+            variant="outline"
+            onClick={handleDownload}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {isDownloading ? "Downloading..." : "Download PDF"}
           </Button>
         </div>
       </div>

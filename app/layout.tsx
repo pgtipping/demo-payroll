@@ -7,6 +7,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { FeatureFlagProvider } from "@/lib/providers/feature-flags";
 import { AuthProvider } from "@/lib/providers/auth-provider";
 import { Toaster } from "sonner";
+import { reportWebVitals as reportWebVitalsMetric } from "@/lib/utils/analytics";
+
+export function reportWebVitals(metric: any) {
+  reportWebVitalsMetric(metric);
+}
 
 const inter = Inter({ subsets: ["latin"] });
 
